@@ -45,8 +45,8 @@ def get_all_regions(conn):
     for i in data:
         regions.append(i[0])
     regions.sort()
-    #print("==================================================================")
-    #print(regions)
+    print("==================================================================")
+    print(regions)
 
     return regions
 
@@ -59,8 +59,8 @@ def get_all_clients(conn):
     for i in data:
         clients.append(i[0])
     clients.sort()
-    #print("==================================================================")
-    #print(clients)
+    print("==================================================================")
+    print(clients)
 
     return clients
 
@@ -79,7 +79,7 @@ def by_region(conn, regions):
         data = cur.fetchall()
         values[f'{region}'] = data[0][0]
         if data == None:
-            print(f"    {region} {values[region]}")
+            print(f"    0")
         else:
             print(f"    {region} {round(values[region], 2)}")
 
@@ -109,7 +109,7 @@ def by_year_region(conn, regions, years, year_values_total):
 
         for region in year_values[year]:
             if year_values[year][region] == None:
-                print(f"    {region} {year_values[year][region]}")
+                print(f"    {region} 0")
             else:
                 print(f"    {region} {round(year_values[year][region], 2)} ({round(year_values[year][region]/year_values_total[year]*100, 1)}%)")
             
@@ -158,10 +158,34 @@ def by_year_client(conn, clients, years, year_values_total):
 
         for client in year_values[year]:
             if year_values[year][client] == None:
-                print(f"    {client} {year_values[year][client]}")
+                print(f"    {client} 0")
             else:
                 print(f"    {client} {round(year_values[year][client], 2)} ({round(year_values[year][client]/year_values_total[year]*100, 1)}%)")
         
+        print("\n")
+
+#year-month Mass column total
+def year_month(conn):
+    #period = 'ShipmentDate>=strftime("%Y-%m-%d", "20{year}-{month}-01") AND ShipmentDate<=strftime("%Y-%m-%d", "20{year}-{nextmonth}-31")'
+    cur = conn.cursor()
+
+    year_values = {}
+    for i in range(18, 22):
+        month_values = {}
+        for j in range(1, 13):
+            cur.execute('SELECT SUM(Mass) FROM entries WHERE ShipmentDate>=strftime("%Y-%m-%d", "20{year}-{month}-01") AND ShipmentDate<=strftime("%Y-%m-%d", "20{year}-{month}-31")'.format(year=i, month=str(j).zfill(2)))
+            data = cur.fetchall()[0][0]
+            month_values[j] = data
+        year_values[i] = month_values
+
+    for year in year_values:
+        print(f"{year}", end="")
+        for month in year_values[year]:
+            if year_values[year][month] == None:
+                pass
+            else:
+                print(f" {str(round(year_values[year][month], 2)).zfill(7)}", end="")
+
         print("\n")
 
 #prints sum of Mass column of each client in region and returns them in '"region": {"client": value}' form
@@ -204,6 +228,8 @@ def main():
 
         by_client(conn, clients)
         by_year_client(conn, clients, YEARS_DICT, year_values_total)
+
+        year_month(conn)
 
         by_region_client(conn, region_values_total, clients)
     
